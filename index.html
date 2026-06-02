@@ -157,7 +157,7 @@
 
     <script>
         let scene, camera, renderer, labelRenderer, controls;
-        let shaftMesh, massMesh, motorMesh;
+        let shaftMesh, massMesh, motorMesh, couplingMesh; // Added couplingMesh
         let rotationAngle = 0;
         
         // Physics / Simulation variables
@@ -258,6 +258,11 @@
             const brassMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.3 });
             const sensorXMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.3, roughness: 0.4 });
             const sensorYMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.3, roughness: 0.4 });
+            
+            // New Materials for Realistic Motor
+            const silverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+            const copperMat = new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.8, roughness: 0.3 });
+            const blueAnodizedMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.8, roughness: 0.3 });
 
             // Base
             const baseGeo = new THREE.BoxGeometry(35, 1, 12);
@@ -277,25 +282,85 @@
 
             createLabel('Rigid Aluminum Extrusion Base', new THREE.Vector3(0, 0.5, 3));
 
-            // Motor
+            // NEW: Cross-beams to attach components to the rails
+            const motorBeam = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 8), aluminumMat);
+            motorBeam.position.set(-16, 0.75, 0); // Rests on rails (top of rails is 0.5)
+            scene.add(motorBeam);
+
+            const bearingLBeam = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 8), aluminumMat);
+            bearingLBeam.position.set(leftBearingX, 0.75, 0);
+            scene.add(bearingLBeam);
+
+            const bearingRBeam = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 8), aluminumMat);
+            bearingRBeam.position.set(rightBearingX, 0.75, 0);
+            scene.add(bearingRBeam);
+
+            // --- DETAILED REALISTIC 775 MOTOR ---
             const motorGroup = new THREE.Group();
-            const motorBodyGeo = new THREE.CylinderGeometry(1.5, 1.5, 4, 32);
-            motorMesh = new THREE.Mesh(motorBodyGeo, darkMetalMat);
-            motorMesh.rotation.z = Math.PI / 2;
-            motorMesh.position.set(2, 3, 0);
-            motorGroup.add(motorMesh);
-            motorGroup.position.set(-14, 0.5, 0);
+            
+            // L-Bracket Motor Mount
+            const motorMountBase = new THREE.Mesh(new THREE.BoxGeometry(3, 0.5, 3), darkMetalMat);
+            motorMountBase.position.set(0, 1.25, 0); // Base at 1.0 (top of cross-beam)
+            motorGroup.add(motorMountBase);
+
+            const motorMountUpright = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.5, 3), darkMetalMat);
+            motorMountUpright.position.set(1.25, 2.5, 0); // Mount plate gripping the front
+            motorGroup.add(motorMountUpright);
+
+            // Motor Casing Sub-Group
+            const motorCasingGroup = new THREE.Group();
+            // Rotate so local +Y points towards the shaft (World +X)
+            motorCasingGroup.rotation.z = -Math.PI / 2;
+            motorCasingGroup.position.set(0, yCenter, 0); 
+
+            // Main Silver Body
+            const mainBody = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 3.5, 32), silverMat);
+            motorCasingGroup.add(mainBody);
+
+            // Magnetic Flux Ring (Dark Center Band)
+            const fluxRing = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 1.5, 32), darkMetalMat);
+            motorCasingGroup.add(fluxRing);
+
+            // Front Plate
+            const frontPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 0.2, 32), darkMetalMat);
+            frontPlate.position.y = 1.85; // Local +Y is front
+            motorCasingGroup.add(frontPlate);
+
+            // Back Plate
+            const backPlate = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 0.2, 32), darkMetalMat);
+            backPlate.position.y = -1.85; // Local -Y is back
+            motorCasingGroup.add(backPlate);
+
+            // Copper Electrical Terminals
+            const term1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 16), copperMat);
+            term1.position.set(0.6, -2.0, 0);
+            motorCasingGroup.add(term1);
+            
+            const term2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 16), copperMat);
+            term2.position.set(-0.6, -2.0, 0);
+            motorCasingGroup.add(term2);
+
+            motorGroup.add(motorCasingGroup);
+            motorGroup.position.set(-16, 0, 0);
             scene.add(motorGroup);
 
-            createLabel('775 DC Motor & Coupling', new THREE.Vector3(-12, 5, 0));
+            // Rigid CNC Shaft Coupling (Blue Anodized)
+            couplingMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16), blueAnodizedMat);
+            couplingMesh.rotation.z = Math.PI / 2;
+            couplingMesh.position.set(-14, yCenter, 0);
+            scene.add(couplingMesh);
+
+            createLabel('775 DC Motor', new THREE.Vector3(-16, 6.0, 0));
+            createLabel('Rigid CNC Coupling', new THREE.Vector3(-14, 5.0, 0));
 
             // Bearings
-            const bearingGeo = new THREE.BoxGeometry(2, 3.5, 2);
+            const bearingGeo = new THREE.BoxGeometry(2, 3.0, 2); // Height 3.0
             const bearingL = new THREE.Mesh(bearingGeo, darkMetalMat);
-            bearingL.position.set(leftBearingX, 2.25, 0);
+            bearingL.position.set(leftBearingX, 2.5, 0); // Base at 1.0 (top of cross-beam)
             scene.add(bearingL);
+            
             const bearingR = new THREE.Mesh(bearingGeo, darkMetalMat);
-            bearingR.position.set(rightBearingX, 2.25, 0);
+            bearingR.position.set(rightBearingX, 2.5, 0);
             scene.add(bearingR);
 
             createLabel('Pillow Block Bearing', new THREE.Vector3(rightBearingX, 4.5, 0));
@@ -308,19 +373,19 @@
 
             createLabel('Central Brass Mass (Rotor)', new THREE.Vector3(2, yCenter + 2, -2));
 
-            // *** FIX 2: RE-POSITIONED SENSORS (INCREASED CLEARANCE) ***
-            // Structural Sensor Bracket (moved back)
-            const bracketBase = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), aluminumMat);
-            bracketBase.position.set(0, 3, -5); // Moved from -3 to -5
+            // *** FIX 2: RE-POSITIONED SENSORS (ATTACHED TO RAILS) ***
+            // Structural Sensor Bracket attached to back rail
+            const bracketBase = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 1), aluminumMat);
+            bracketBase.position.set(0, 4.5, -3); // Base at 0.5 (top of back rail)
             scene.add(bracketBase);
             
-            const bracketArm = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 5), aluminumMat);
-            bracketArm.position.set(0, 6, -3); // Extends arm over shaft
+            const bracketArm = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 4), aluminumMat);
+            bracketArm.position.set(0, 8, -1.5); // Extends arm over shaft
             scene.add(bracketArm);
 
-            // Y-Sensor (Top) - Moved up to avoid clipping mass at resonance
+            // Y-Sensor (Top) - Attached to overhead arm
             const sensorY = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16), sensorYMat);
-            sensorY.position.set(0, 7.0, 0); // Position base at 7.0 (Resting shaft is at 3.5)
+            sensorY.position.set(0, 7.0, 0);
             scene.add(sensorY);
             
             const laserY = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 6, 8), 
@@ -330,7 +395,11 @@
 
             createLabel('Y-Axis High-Speed Sensor', new THREE.Vector3(0, 8.5, 0));
 
-            // X-Sensor (Side) - Moved radially outwards
+            // X-Sensor (Side) - Attached to front rail via small pillar
+            const sensorXPillar = new THREE.Mesh(new THREE.BoxGeometry(1, 3, 1), aluminumMat);
+            sensorXPillar.position.set(0, 2.0, 3); // Base at 0.5 (top of front rail)
+            scene.add(sensorXPillar);
+
             const sensorX = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16), sensorXMat);
             sensorX.rotation.x = Math.PI / 2;
             sensorX.position.set(0, yCenter, 3.5); // Resting is z=0, sensor now at z=3.5
@@ -414,6 +483,9 @@
 
             if (massMesh) {
                 massMesh.rotation.x = -rotationAngle; 
+            }
+            if (couplingMesh) {
+                couplingMesh.rotation.x = -rotationAngle; // Spin the coupling with the shaft
             }
 
             // UI Dashboard update (Z deflection mapped visually to UI "X Disp")
