@@ -72,21 +72,7 @@
         .val-x { color: #f87171; }
         .val-y { color: #60a5fa; }
         
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(15, 23, 42, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            max-width: 350px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            color: #cbd5e1;
-            pointer-events: none;
-            backdrop-filter: blur(8px);
-        }
+
         .dot {
             width: 10px;
             height: 10px;
@@ -178,13 +164,7 @@
         </div>
     </div>
 
-    <div id="instructions">
-        <strong style="color: #fff;">Realistic Viewport:</strong><br>
-        Components upgraded to physical twins (Authentic KP08 orientation, CNC clamping coupling, structured gussets).<br><br>
-        <div class="dot" style="background: #ef4444;"></div> X-Axis Inductive Sensor<br>
-        <div class="dot" style="background: #3b82f6;"></div> Y-Axis Inductive Sensor<br>
-        <div class="dot" style="background: #fbbf24;"></div> Machined Brass Rotor
-    </div>
+
 
     <script>
         let scene, camera, renderer, labelRenderer, controls;
@@ -266,17 +246,14 @@
             toggleUIBtn.addEventListener('click', () => {
                 isUIHidden = !isUIHidden;
                 const uiPanel = document.getElementById('ui-panel');
-                const instructions = document.getElementById('instructions');
                 
                 if (isUIHidden) {
                     toggleUIBtn.innerText = "Toggle UI: ON [H]";
                     uiPanel.style.display = 'none';
-                    instructions.style.display = 'none';
                     if (labelRenderer) labelRenderer.domElement.style.display = 'none';
                 } else {
                     toggleUIBtn.innerText = "Toggle UI: OFF [H]";
                     uiPanel.style.display = 'block';
-                    instructions.style.display = 'block';
                     if (labelRenderer) labelRenderer.domElement.style.display = labelToggle.checked ? 'block' : 'none';
                 }
             });
